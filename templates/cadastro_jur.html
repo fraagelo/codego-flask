@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cadastro Jurídico - CODEGO</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="min-h-screen bg-[#002b5c] p-4 md:p-8">
+
+    <div class="max-w-4xl mx-auto">
+        <header class="bg-white rounded-2xl p-6 mb-8 shadow-lg flex flex-col md:flex-row justify-between items-center border border-gray-100">
+            <div class="flex items-center gap-4">
+                <img src="{{ url_for('static', filename='logo_codego.png') }}" alt="Logo" class="h-12 w-auto">
+                <div>
+                    <h1 class="text-xl font-bold text-[#002b5c]">Gestão Jurídica</h1>
+                    <p class="text-sm text-gray-500 italic">Novo Registro Processual</p>
+                </div>
+            </div>
+            <div class="flex gap-4">
+                <a href="{{ url_for('menu_jur') }}" class="text-blue-600 hover:text-blue-800 font-medium flex items-center gap-2 text-sm">
+                    <i data-lucide="home" class="w-4 h-4"></i> Início
+                </a>
+            </div>
+        </header>
+
+        <form action="{{ url_for('cadastro_jur') }}" method="POST" class="bg-white rounded-2xl p-10 shadow-2xl border border-gray-100">
+            
+            <div id="secao-selecao" class="mb-8">
+                <h2 class="text-lg font-bold text-[#002b5c] mb-6 flex items-center gap-2 border-b pb-4">
+                    <i data-lucide="search"></i> 1. Selecione a Empresa
+                </h2>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Empresas pendentes de dados jurídicos:</label>
+                    <select name="empresa_id" id="empresa_id" required onchange="toggleForm(this.value)"
+                        class="w-full p-3 border-2 border-blue-50 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all bg-gray-50 font-medium">
+                        <option value="">-- Clique para selecionar uma empresa --</option>
+                        {% for empresa in empresas %}
+                            <option value="{{ empresa.id }}">{{ empresa.empresa }} (CNPJ: {{ empresa.cnpj }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div id="formulario-juridico" class="hidden space-y-6 animate-in fade-in duration-500">
+                <h2 class="text-lg font-bold text-[#002b5c] mb-8 flex items-center gap-2 border-b pb-4">
+                    <i data-lucide="gavel"></i> 2. Informações do Processo
+                </h2>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Processo Judicial</label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
+                                <i data-lucide="file-text" class="w-5 h-5"></i>
+                            </span>
+                            <input type="text" name="processo_judicial" required 
+                                class="w-full pl-10 p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all" 
+                                placeholder="Número do processo">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Status</label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
+                                <i data-lucide="activity" class="w-5 h-5"></i>
+                            </span>
+                            <input type="text" name="status" required 
+                                class="w-full pl-10 p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all" 
+                                placeholder="Ex: Em andamento">
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Valor da Causa</label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
+                            <i data-lucide="dollar-sign" class="w-5 h-5"></i>
+                        </span>
+                        <input type="text" name="valor_da_causa" 
+                            class="w-full pl-10 p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all" 
+                            placeholder="R$ 0,00">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Assunto Judicial</label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
+                            <i data-lucide="bookmark" class="w-5 h-5"></i>
+                        </span>
+                        <textarea name="assunto_judicial" required rows="3"
+                            class="w-full pl-10 p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all" 
+                            placeholder="Descreva o assunto jurídico"></textarea>
+                    </div>
+                </div>
+
+                <div class="mt-10 flex justify-end gap-4 border-t pt-6">
+                    <button type="button" onclick="window.location.reload()" 
+                        class="bg-gray-100 text-gray-600 px-6 py-3 rounded-lg font-bold hover:bg-gray-200">
+                        Voltar
+                    </button>
+                    <button type="submit" 
+                        class="bg-green-600 text-white px-10 py-3 rounded-lg font-bold hover:bg-green-700 shadow-lg flex items-center gap-2">
+                        <i data-lucide="save" class="w-5 h-5"></i> Salvar Registro
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        function toggleForm(valor) {
+            const formJuridico = document.getElementById('formulario-juridico');
+            if (valor !== "") {
+                formJuridico.classList.remove('hidden');
+                // Scroll suave para o formulário
+                formJuridico.scrollIntoView({ behavior: 'smooth' });
+            } else {
+                formJuridico.classList.add('hidden');
+            }
+        }
+    </script>
+</body>
+</html>
