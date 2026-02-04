@@ -1,12 +1,9 @@
 # flask faz ligação com o servidor Web e o inicia
 from flask import Flask, render_template, request, redirect, url_for, session, flash, make_response
-import pandas as pd
 import os
-import csv
 import mysql.connector
 from datetime import datetime, timedelta
 from io import BytesIO
-from werkzeug.utils import secure_filename
 
 # importações para realização do relatório
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageTemplate, Frame, Image, NextPageTemplate
@@ -21,7 +18,6 @@ from itsdangerous import URLSafeTimedSerializer
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import smtplib
-import hashlib
 from itsdangerous import URLSafeTimedSerializer
 
 app = Flask(__name__)
@@ -515,9 +511,7 @@ def relatorios():
                     cursor.execute("SELECT * FROM municipal_lots WHERE id = %s", (int(empresa_id),))
                     lot = cursor.fetchone()
             if not lot: return "Empresa não encontrada.", 404
-            from reportlab.lib.units import inch
             from reportlab.pdfbase import pdfmetrics
-            from reportlab.pdfbase.ttfonts import TTFont
             if not hasattr(pdfmetrics, '_fonts'):
                 from reportlab.pdfbase import pdfmetrics
             buffer = BytesIO()
