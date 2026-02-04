@@ -35,7 +35,8 @@ db_config = {
     'port': int(os.environ.get('DB_PORT', 3306)),
     'user': os.environ.get('DB_USER', 'max'),
     'password': os.environ.get('DB_PASSWORD', 'Joaolopes05'),
-    'database': os.environ.get('DB_NAME', 'codego_db')
+    'database': os.environ.get('DB_NAME', 'codego_db'),
+    'connect_timeout': 30
 }
 
 #  dados como são recebidos no banco de dados 
@@ -147,7 +148,7 @@ def add_watermark(canvas, doc):
 
 @app.before_request
 def before_request_func():
-    caminhos_livres = ['login', 'static', 'recuperar_senha', 'registrar_usuario', 'redefinir_senha']
+    caminhos_livres = ['login', 'static', 'recuperar_senha', 'registrar_usuario', 'redefinir_senha', 'test_db']
     if 'username' not in session and request.endpoint not in caminhos_livres:
         return redirect(url_for('login'))
 
@@ -850,6 +851,15 @@ def logs():
     except mysql.connector.Error as err:
         print(f"Erro logs: {err}")
     return render_template('logs.html', logs=logs_data)
+
+@app.route('/test-db')
+def test_db():
+    try:
+        with mysql.connector.connect(**db_config, connect_timeout=10) as conn:
+            return f"✅ DB OK! Host: {db_config['host']}"
+    except Exception as e:
+        return f"❌ DB ERRO: {str(e)}", 500
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
