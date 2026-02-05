@@ -31,7 +31,7 @@ bcrypt = Bcrypt(app)
 
 # configurações que permitem o acesso ao BD do mySQL (credenciais de acesso)
 db_config = {
-    'host': os.environ.get('DB_HOST', '26.11.224.184'),
+    'host': os.environ.get('DB_HOST', '192.168.15.170'),
     'port': int(os.environ.get('DB_PORT', 3306)),
     'user': os.environ.get('DB_USER', 'max'),
     'password': os.environ.get('DB_PASSWORD', 'Joaolopes05'),
