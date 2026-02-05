@@ -36,7 +36,6 @@ db_config = {
     'user': os.environ.get('DB_USER', 'max'),
     'password': os.environ.get('DB_PASSWORD', 'Joaolopes05'),
     'database': os.environ.get('DB_NAME', 'codego_db'),
-    'connect_timeout': 30
 }
 
 #  dados como são recebidos no banco de dados 
@@ -148,7 +147,7 @@ def add_watermark(canvas, doc):
 
 @app.before_request
 def before_request_func():
-    caminhos_livres = ['login', 'static', 'recuperar_senha', 'registrar_usuario', 'redefinir_senha', 'test_db']
+    caminhos_livres = ['login', 'static', 'recuperar_senha', 'registrar_usuario', 'redefinir_senha', 'test-db']
     if 'username' not in session and request.endpoint not in caminhos_livres:
         return redirect(url_for('login'))
 
@@ -167,7 +166,7 @@ def login():
         password = request.form['password']
 
         try:
-            with mysql.connector.connect(**db_config) as db:
+            with mysql.connector.connect(**db_config, connect_timeout=30) as db:
                 with db.cursor(dictionary=True) as cursor:
                     cursor.execute("SELECT * FROM usuarios WHERE login = %s", (username,))
                     usuario = cursor.fetchone()
@@ -254,7 +253,7 @@ def cadastro():
         empresa_id = None
             
         try:
-            with mysql.connector.connect(**db_config) as db:
+            with mysql.connector.connect(**db_config, connect_timeout=30) as db:
                 with db.cursor() as cursor:
                     cols = ', '.join(dados.keys())
                     placeholders = ', '.join(['%s'] * len(dados))
@@ -323,7 +322,7 @@ def cadastro_jur():
         }
         
         try:
-            with mysql.connector.connect(**db_config) as db:
+            with mysql.connector.connect(**db_config, connect_timeout=30) as db:
                 with db.cursor() as cursor:
                     set_clause = ", ".join([f"`{k}` = %s" for k in dados_jur.keys()])
                     query = f"UPDATE municipal_lots SET {set_clause} WHERE id = %s"
@@ -338,7 +337,7 @@ def cadastro_jur():
     # Lógica GET: Busca empresas que não possuem dados jurídicos preenchidos
     empresas_pendentes = []
     try:
-        with mysql.connector.connect(**db_config) as db:
+        with mysql.connector.connect(**db_config, connect_timeout=30) as db:
             with db.cursor(dictionary=True) as cursor:
                 cursor.execute("""
                     SELECT id, empresa, cnpj FROM municipal_lots 
@@ -357,7 +356,7 @@ def cadastro_jur():
 @app.route('/selecionar_edicao')
 def selecionar_edicao():
     try:
-        with mysql.connector.connect(**db_config) as db:
+        with mysql.connector.connect(**db_config, connect_timeout=30) as db:
             with db.cursor(dictionary=True) as cursor:
                 cursor.execute("""
                     SELECT id, municipio, empresa, cnpj 
@@ -376,7 +375,7 @@ def editar(empresa_id):
     if session.get('role') not in ('assent','admin'): return redirect(url_for('login'))
 
     try:
-        with mysql.connector.connect(**db_config) as db:
+        with mysql.connector.connect(**db_config, connect_timeout=30) as db:
             with db.cursor(dictionary=True) as cursor:
                 cursor.execute("SELECT * FROM municipal_lots WHERE id = %s", (empresa_id,))
                 empresa = cursor.fetchone()
@@ -451,7 +450,7 @@ def editar(empresa_id):
 def editar_jur(empresa_id):
     if session.get('role') != 'jur': return redirect(url_for('login'))
     try:
-        with mysql.connector.connect(**db_config) as db:
+        with mysql.connector.connect(**db_config, connect_timeout=30) as db:
             with db.cursor(dictionary=True) as cursor:
                 cursor.execute("SELECT * FROM municipal_lots WHERE id = %s", (empresa_id,))
                 empresa = cursor.fetchone()
@@ -507,7 +506,7 @@ def relatorios():
             flash("Selecione uma empresa.", "warning")
             return redirect(url_for('relatorios'))
         try:
-            with mysql.connector.connect(**db_config) as db:
+            with mysql.connector.connect(**db_config, connect_timeout=30) as db:
                 with db.cursor(dictionary=True) as cursor:
                     cursor.execute("SELECT * FROM municipal_lots WHERE id = %s", (int(empresa_id),))
                     lot = cursor.fetchone()
@@ -670,7 +669,7 @@ def relatorios():
     empresas_info = {}
 
     try:
-        with mysql.connector.connect(**db_config) as db:
+        with mysql.connector.connect(**db_config, connect_timeout=30) as db:
             with db.cursor(dictionary=True) as cursor:
                 cursor.execute("SELECT id, empresa FROM municipal_lots WHERE empresa != '-' ORDER BY empresa")
                 empresas = cursor.fetchall()
@@ -705,7 +704,7 @@ def registrar_usuario():
             return render_template('registrar_usuario.html')
 
         try:
-            with mysql.connector.connect(**db_config) as db:
+            with mysql.connector.connect(**db_config, connect_timeout=30) as db:
                 with db.cursor() as cursor:
                     # Supondo que você tenha uma tabela 'usuarios' com os campos abaixo
                     cursor.execute("""
@@ -844,7 +843,7 @@ def logs():
     if 'username' not in session or session.get('role') != 'admin': return redirect(url_for('login'))
     logs_data = []
     try:
-        with mysql.connector.connect(**db_config) as db:
+        with mysql.connector.connect(**db_config, connect_timeout=30) as db:
             with db.cursor(dictionary=True) as cursor:
                 cursor.execute("SELECT user_id, username, action, descricao, timestamp FROM logs ORDER BY timestamp DESC LIMIT 1000")
                 logs_data = cursor.fetchall()
