@@ -19,6 +19,8 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import smtplib
 from itsdangerous import URLSafeTimedSerializer
+from dotenv import load_dotenv
+load_dotenv()
 
 app = Flask(__name__)
 
@@ -31,11 +33,11 @@ bcrypt = Bcrypt(app)
 
 # configurações que permitem o acesso ao BD do mySQL (credenciais de acesso)
 db_config = {
-    'host': os.environ.get('DB_HOST', '192.168.15.170'),
-    'port': int(os.environ.get('DB_PORT', 3306)),
-    'user': os.environ.get('DB_USER', 'max'),
-    'password': os.environ.get('DB_PASSWORD', 'Joaolopes05'),
-    'database': os.environ.get('DB_NAME', 'codego_db'),
+    'host': os.environ.get('DB_HOST'),
+    'port': int(os.environ.get('DB_PORT')),
+    'user': os.environ.get('DB_USER'),
+    'password': os.environ.get('DB_PASSWORD'),
+    'database': os.environ.get('DB_NAME')
 }
 
 #  dados como são recebidos no banco de dados 
@@ -147,7 +149,7 @@ def add_watermark(canvas, doc):
 
 @app.before_request
 def before_request_func():
-    caminhos_livres = ['login', 'static', 'recuperar_senha', 'registrar_usuario', 'redefinir_senha', 'test-db']
+    caminhos_livres = ['login', 'static', 'recuperar_senha', 'registrar_usuario', 'redefinir_senha']
     if 'username' not in session and request.endpoint not in caminhos_livres:
         return redirect(url_for('login'))
 
@@ -166,7 +168,7 @@ def login():
         password = request.form['password']
 
         try:
-            with mysql.connector.connect(**db_config, connect_timeout=30) as db:
+            with mysql.connector.connect(**db_config) as db:
                 with db.cursor(dictionary=True) as cursor:
                     cursor.execute("SELECT * FROM usuarios WHERE login = %s", (username,))
                     usuario = cursor.fetchone()
@@ -253,7 +255,7 @@ def cadastro():
         empresa_id = None
             
         try:
-            with mysql.connector.connect(**db_config, connect_timeout=30) as db:
+            with mysql.connector.connect(**db_config) as db:
                 with db.cursor() as cursor:
                     cols = ', '.join(dados.keys())
                     placeholders = ', '.join(['%s'] * len(dados))
@@ -264,6 +266,7 @@ def cadastro():
                     db.commit()
                     gravar_log(
                         acao=f"CADASTRO_EMPRESA (ID {empresa_id})",
+                        descricao = " | ".join([f"{campo}: {valor}" for campo, valor in dados.items()]),
                         usuario_username=session.get('username'),
                         db_conn=db
                     )
@@ -297,12 +300,12 @@ def cadastro():
                                 caminho_imagem = VALUES(caminho_imagem)
                         """, (empresa_id, descricao, caminho_imagem))
                         db.commit()
+                        gravar_log(
+                            acao=f"UPLOAD_IMAGEM_EMPRESA (empresa{empresa_id})",
+                            usuario_username=session.get('username'),
+                            db_conn=db
+                        )
             flash('Registro salvo com sucesso!', 'success')
-            gravar_log(
-                acao=f"UPLOAD_IMAGEM_EMPRESA (empresa{empresa_id})",
-                usuario_username=session.get('username'),
-                db_conn=db
-            )
             return redirect(url_for('cadastro'))
         except Exception as e:
             flash(f'Erro ao cadastrar: {e}', 'danger')
@@ -322,7 +325,7 @@ def cadastro_jur():
         }
         
         try:
-            with mysql.connector.connect(**db_config, connect_timeout=30) as db:
+            with mysql.connector.connect(**db_config) as db:
                 with db.cursor() as cursor:
                     set_clause = ", ".join([f"`{k}` = %s" for k in dados_jur.keys()])
                     query = f"UPDATE municipal_lots SET {set_clause} WHERE id = %s"
@@ -337,7 +340,7 @@ def cadastro_jur():
     # Lógica GET: Busca empresas que não possuem dados jurídicos preenchidos
     empresas_pendentes = []
     try:
-        with mysql.connector.connect(**db_config, connect_timeout=30) as db:
+        with mysql.connector.connect(**db_config) as db:
             with db.cursor(dictionary=True) as cursor:
                 cursor.execute("""
                     SELECT id, empresa, cnpj FROM municipal_lots 
@@ -356,7 +359,7 @@ def cadastro_jur():
 @app.route('/selecionar_edicao')
 def selecionar_edicao():
     try:
-        with mysql.connector.connect(**db_config, connect_timeout=30) as db:
+        with mysql.connector.connect(**db_config) as db:
             with db.cursor(dictionary=True) as cursor:
                 cursor.execute("""
                     SELECT id, municipio, empresa, cnpj 
@@ -375,7 +378,7 @@ def editar(empresa_id):
     if session.get('role') not in ('assent','admin'): return redirect(url_for('login'))
 
     try:
-        with mysql.connector.connect(**db_config, connect_timeout=30) as db:
+        with mysql.connector.connect(**db_config) as db:
             with db.cursor(dictionary=True) as cursor:
                 cursor.execute("SELECT * FROM municipal_lots WHERE id = %s", (empresa_id,))
                 empresa = cursor.fetchone()
@@ -450,7 +453,7 @@ def editar(empresa_id):
 def editar_jur(empresa_id):
     if session.get('role') != 'jur': return redirect(url_for('login'))
     try:
-        with mysql.connector.connect(**db_config, connect_timeout=30) as db:
+        with mysql.connector.connect(**db_config) as db:
             with db.cursor(dictionary=True) as cursor:
                 cursor.execute("SELECT * FROM municipal_lots WHERE id = %s", (empresa_id,))
                 empresa = cursor.fetchone()
@@ -506,12 +509,14 @@ def relatorios():
             flash("Selecione uma empresa.", "warning")
             return redirect(url_for('relatorios'))
         try:
-            with mysql.connector.connect(**db_config, connect_timeout=30) as db:
+            with mysql.connector.connect(**db_config) as db:
                 with db.cursor(dictionary=True) as cursor:
                     cursor.execute("SELECT * FROM municipal_lots WHERE id = %s", (int(empresa_id),))
                     lot = cursor.fetchone()
             if not lot: return "Empresa não encontrada.", 404
+            from reportlab.lib.units import inch
             from reportlab.pdfbase import pdfmetrics
+            from reportlab.pdfbase.ttfonts import TTFont
             if not hasattr(pdfmetrics, '_fonts'):
                 from reportlab.pdfbase import pdfmetrics
             buffer = BytesIO()
@@ -669,7 +674,7 @@ def relatorios():
     empresas_info = {}
 
     try:
-        with mysql.connector.connect(**db_config, connect_timeout=30) as db:
+        with mysql.connector.connect(**db_config) as db:
             with db.cursor(dictionary=True) as cursor:
                 cursor.execute("SELECT id, empresa FROM municipal_lots WHERE empresa != '-' ORDER BY empresa")
                 empresas = cursor.fetchall()
@@ -704,7 +709,7 @@ def registrar_usuario():
             return render_template('registrar_usuario.html')
 
         try:
-            with mysql.connector.connect(**db_config, connect_timeout=30) as db:
+            with mysql.connector.connect(**db_config) as db:
                 with db.cursor() as cursor:
                     # Supondo que você tenha uma tabela 'usuarios' com os campos abaixo
                     cursor.execute("""
@@ -843,22 +848,13 @@ def logs():
     if 'username' not in session or session.get('role') != 'admin': return redirect(url_for('login'))
     logs_data = []
     try:
-        with mysql.connector.connect(**db_config, connect_timeout=30) as db:
+        with mysql.connector.connect(**db_config) as db:
             with db.cursor(dictionary=True) as cursor:
                 cursor.execute("SELECT user_id, username, action, descricao, timestamp FROM logs ORDER BY timestamp DESC LIMIT 1000")
                 logs_data = cursor.fetchall()
     except mysql.connector.Error as err:
         print(f"Erro logs: {err}")
     return render_template('logs.html', logs=logs_data)
-
-@app.route('/test-db')
-def test_db():
-    try:
-        with mysql.connector.connect(**db_config, connect_timeout=10) as conn:
-            return f"✅ DB OK! Host: {db_config['host']}"
-    except Exception as e:
-        return f"❌ DB ERRO: {str(e)}", 500
-
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
