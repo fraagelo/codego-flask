@@ -179,9 +179,9 @@
             </div>
 
             <div class="nav-menu">
-                <a href="{{ url_for('cadastro') }}" class="nav-button">Cadastrar Nova Empresa</a>
-                <a href="{{ url_for('selecionar_edicao') }}" class="nav-button">Editar Cadastro</a>
-                <a href="{{ url_for('relatorios') }}" class="nav-button">Gerar Relatório</a>
+                <a href="{{ url_for('cadastro.cadastro') }}" class="nav-button">Cadastrar Nova Empresa</a>
+                <a href="{{ url_for('edicao.selecionar_edicao') }}" class="nav-button">Editar Cadastro</a>
+                <a href="{{ url_for('relatorio.relatorios') }}" class="nav-button">Gerar Relatório</a>
             </div>
         </div>
         
@@ -193,13 +193,13 @@
                 
                 <div class="topbar-actions">
                     {% if session.get('role') == 'admin' %}
-                    <a href="{{ url_for('logs') }}" class="btn-topbar btn-logs">
+                    <a href="{{ url_for('logs.logs') }}" class="btn-topbar btn-logs">
                         <i data-lucide="database-zap" class="w-4 h-4"></i>
                         Logs do Sistema
                     </a>
                     {% endif %}
 
-                    <a href="{{ url_for('logout') }}" class="btn-topbar btn-logout">
+                    <a href="{{ url_for('auth.logout') }}" class="btn-topbar btn-logout">
                         <i data-lucide="log-out" class="w-4 h-4"></i>
                         Sair do Sistema
                     </a>
