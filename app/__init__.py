@@ -1,8 +1,13 @@
 from flask import Flask
+from itsdangerous import URLSafeTimedSerializer
+from dotenv import load_dotenv
+
+load_dotenv()
 
 def create_app():
     app = Flask(__name__)
     app.config.from_object("app.config.Config")
+
 
     # registrar blueprints
     from app.routes.auth import auth_bp

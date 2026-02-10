@@ -1,7 +1,15 @@
-from flask import Blueprint, render_template, request, redirect, url_for, session, flash
+from flask import Blueprint, render_template, request, redirect, url_for, session, flash, current_app
 from app.db import get_db
+from itsdangerous import URLSafeTimedSerializer
+import os
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+import smtplib
 
 auth_bp = Blueprint("auth", __name__)
+
+def get_serializer():
+    return URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
 
 @auth_bp.route("/")
 def login():
@@ -57,6 +65,7 @@ def recuperar_senha():
             email_usuario = user['email']
 
             # Gerar um token com expiração de 15 minutos
+            serializer = get_serializer()
             token = serializer.dumps({'user_id': user_id}, salt='recover')
 
             # Gerar o link de redefinição
