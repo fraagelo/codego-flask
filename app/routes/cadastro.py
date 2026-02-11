@@ -1,26 +1,110 @@
-from flask import Blueprint, render_template, request, session, redirect, url_for, flash
+from flask import Blueprint, render_template, request, session, redirect, url_for, flash, current_app
 from app.db import get_db
 from app.services.log_service import gravar_log
+import os
 
 cadastro_bp = Blueprint("cadastro", __name__)
 
-@cadastro_bp.route("/cadastro")
+@cadastro_bp.route('/cadastro', methods=['GET', 'POST'])
 def cadastro():
-    return render_template("cadastro.html")
+    if session.get('role') not in ('assent','admin'): return redirect(url_for('login'))
+    if request.method == 'POST':
+        colunas_map = {
+            'MUNICIPIO': 'municipio',
+            'DISTRITO': 'distrito',
+            'EMPRESA': 'empresa',
+            'CNPJ': 'cnpj',
+            'PROCESSO SEI': 'processo_sei',
+            'STATUS DE ASSENTAMENTO': 'status_de_assentamento',
+            'RAMO DE ATIVIDADE': 'ramo_de_atividade',
+            'EMPREGOS GERADOS': 'empregos_gerados',
+            'QUADRA': 'quadra',
+            'MÓDULO(S)': 'modulo_s',
+            'QTD. MÓDULOS': 'qtd_modulos',
+            'TAMANHO(M²)': 'tamanho_m2',
+            'MATRÍCULA(S)': 'matricula_s',
+            'OBSEVAÇÕES': 'obsevacoes',
+            'DATA ESCRITURAÇÃO': 'data_escrituracao',
+            'DATA CONTRATO DE COMPRA E VENDA': 'data_contrato_de_compra_e_venda',
+            'IRREGULARIDADES?': 'irregularidades',
+            'ÚLTIMA VISTORIA': 'ultima_vistoria',
+            'ATUALIZADO': 'atualizado',
+            'IMÓVEL REGULAR/IRREGULAR': 'imovel_regular_irregular',
+            'TAXA E OCUPAÇÃO DO IMÓVEL(%)': 'taxa_e_ocupacao_do_imovel',
+        }
 
-@cadastro_bp.route("/salvar_cadastro", methods=["POST"])
-def salvar_cadastro():
-    empresa = request.form["empresa"]
+        campos_numericos = ['processo_sei', 'empregos_gerados', 'quadra', 'qtd_modulos', 'tamanho_m2', 'matricula_s', 'taxa_e_ocupacao_do_imovel']
 
-    with get_db() as db:
-        cursor = db.cursor()
-        cursor.execute(
-            "INSERT INTO empresas (empresa) VALUES (%s)",
-            (empresa,)
-        )
-        db.commit()
+        dados = {}
+        for form_name, db_name in colunas_map.items():
+            valor = request.form.get(form_name, '')
 
-    return "Salvo"
+            if db_name in campos_numericos:
+                if valor.isdigit():
+                    dados[db_name] = int(valor)
+                else:
+                    dados[db_name] = '0'
+            else:
+                dados[db_name] = valor if valor else '-'
+
+        empresa_id = None
+            
+        try:
+            with get_db() as db:
+                with db.cursor() as cursor:
+                    cols = ', '.join(dados.keys())
+                    placeholders = ', '.join(['%s'] * len(dados))
+                    query = f"INSERT INTO municipal_lots ({cols}) VALUES ({placeholders})"
+                    valores = [dados[campo] for campo in dados.keys()]
+                    cursor.execute(query, valores)
+                    empresa_id = cursor.lastrowid
+                    db.commit()
+                    gravar_log(
+                        acao=f"CADASTRO_EMPRESA (ID {empresa_id})",
+                        descricao = " | ".join([f"{campo}: {valor}" for campo, valor in dados.items()]),
+                        usuario_username=session.get('username'),
+                        db_conn=db
+                    )
+                if not empresa_id:
+                    raise Exception("Erro ao obter ID do cadastro.")
+                
+                file = request.files.get('IMAGEM_EMPRESA')
+                descricao = request.form.get('DESCRICAO_EMPRESA', '') or ' '
+
+                if file and file.filename.strip():
+                    nome_original = file.filename
+                    nome_base, ext = os.path.splitext(nome_original)
+                    ext = ext.lower()
+
+                    if ext not in ['.jpg', '.jpeg', '.png', '.gif', '.webp']:
+                        ext = '.jpg'
+
+                    nome_arquivo = f"empresa{empresa_id}{ext}"
+                    filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], nome_arquivo)
+
+                    file.save(filepath)
+
+                    caminho_imagem = f"/static/imagens_empresas/{nome_arquivo}".replace('\\', '/')
+
+                    with db.cursor() as cursor:
+                        cursor.execute("""
+                            INSERT INTO empresa_infos (empresa_id, descricao, caminho_imagem)
+                            VALUES (%s, %s, %s)
+                            ON DUPLICATE KEY UPDATE
+                                descricao = VALUES(descricao),
+                                caminho_imagem = VALUES(caminho_imagem)
+                        """, (empresa_id, descricao, caminho_imagem))
+                        db.commit()
+                        gravar_log(
+                            acao=f"UPLOAD_IMAGEM_EMPRESA (empresa{empresa_id})",
+                            usuario_username=session.get('username'),
+                            db_conn=db
+                        )
+            flash('Registro salvo com sucesso!', 'success')
+            return redirect(url_for('cadastro'))
+        except Exception as e:
+            flash(f'Erro ao cadastrar: {e}', 'danger')
+    return render_template('cadastro.html', username=session.get('username'))
 
 @cadastro_bp.route('/cadastro_jur', methods=['GET', 'POST'])
 def cadastro_jur():
