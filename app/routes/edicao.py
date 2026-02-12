@@ -2,10 +2,12 @@ from flask import Blueprint, render_template, session, redirect, url_for, flash,
 from app.db import get_db
 from app.services.log_service import gravar_log
 from app.constants import COLUNAS, LABELS, chaves_fixas, labels_fixas, chaves_editaveis, labels_editaveis
+from app.utils.decorators import role_required
 
 edicao_bp = Blueprint("edicao", __name__)
 
 @edicao_bp.route('/selecionar_edicao')
+@role_required('assent', 'admin', 'jur')
 def selecionar_edicao():
     try:
         with get_db() as db:
@@ -23,9 +25,8 @@ def selecionar_edicao():
     return render_template('selecionar_edicao.html', dados=dados, role=session.get('role'))
 
 @edicao_bp.route('/editar/<int:empresa_id>', methods=['GET', 'POST'])
+@role_required('assent', 'admin')
 def editar(empresa_id):
-    if session.get('role') not in ('assent','admin'): return redirect(url_for('login'))
-
     try:
         with get_db() as db:
             with db.cursor(dictionary=True) as cursor:
@@ -99,8 +100,8 @@ def editar(empresa_id):
         return redirect(url_for('selecionar_edicao'))
     
 @edicao_bp.route('/editar_jur/<int:empresa_id>', methods=['GET', 'POST'])
+@role_required('jur', 'admin')
 def editar_jur(empresa_id):
-    if session.get('role') != 'jur': return redirect(url_for('login'))
     try:
         with get_db() as db:
             with db.cursor(dictionary=True) as cursor:

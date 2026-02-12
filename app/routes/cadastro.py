@@ -2,12 +2,13 @@ from flask import Blueprint, render_template, request, session, redirect, url_fo
 from app.db import get_db
 from app.services.log_service import gravar_log
 import os
+from app.utils.decorators import role_required
 
 cadastro_bp = Blueprint("cadastro", __name__)
 
 @cadastro_bp.route('/cadastro', methods=['GET', 'POST'])
+@role_required('assent', 'admin')
 def cadastro():
-    if session.get('role') not in ('assent','admin'): return redirect(url_for('login'))
     if request.method == 'POST':
         colunas_map = {
             'MUNICIPIO': 'municipio',
@@ -107,9 +108,8 @@ def cadastro():
     return render_template('cadastro.html', username=session.get('username'))
 
 @cadastro_bp.route('/cadastro_jur', methods=['GET', 'POST'])
+@role_required('jur', 'admin')
 def cadastro_jur():
-    if session.get('role') != 'jur': return redirect(url_for('login'))
-    
     if request.method == 'POST':
         empresa_id = request.form.get('empresa_id')
         dados_jur = {

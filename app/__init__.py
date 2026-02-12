@@ -1,37 +1,14 @@
 from flask import Flask, session, redirect, url_for, request
 from itsdangerous import URLSafeTimedSerializer
 from dotenv import load_dotenv
-
-load_dotenv()
+from app.extensions import bcrypt
 
 def create_app():
     app = Flask(__name__)
     app.config.from_object("app.config.Config")
 
-    @app.before_request
-    def verificar_login():
-
-        rotas_publicas = (
-            'auth.login',
-            'auth.recuperar_senha',
-            'auth.redefinir_senha',
-            'auth.registrar_usuario',
-            'static'
-        )
-
-        if request.endpoint is None:
-            return
-
-        if request.endpoint.startswith('static'):
-            return
-
-        if request.endpoint in rotas_publicas:
-            return
-
-        if 'username' not in session:
-            return redirect(url_for('auth.login'))
-
-
+    load_dotenv()
+    bcrypt.init_app(app)
 
     # registrar blueprints
     from app.routes.auth import auth_bp

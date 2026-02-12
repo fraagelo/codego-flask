@@ -8,10 +8,12 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, Tabl
 from datetime import datetime
 import os
 from app.services.pdf_service import add_watermark
+from app.utils.decorators import role_required
 
 relatorio_bp = Blueprint("relatorio", __name__)
 
 @relatorio_bp.route('/relatorio', methods=['GET', 'POST'])
+@role_required('assent', 'jur', 'admin')
 def relatorios():
     if request.method == 'POST':
         empresa_id = request.form.get('empresa')

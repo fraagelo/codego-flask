@@ -1,11 +1,12 @@
 from flask import Blueprint, render_template, session, redirect, url_for
 from app.db import get_db
+from app.utils.decorators import role_required
 
 logs_bp = Blueprint("logs", __name__)
 
 @logs_bp.route('/logs')
+@role_required('admin')
 def logs():
-    if 'username' not in session or session.get('role') != 'admin': return redirect(url_for('login'))
     logs_data = []
     try:
         with get_db() as db:
