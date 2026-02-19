@@ -1,12 +1,13 @@
-from app.routes.auth import auth_bp
-from flask import render_template, request, flash, redirect, url_for, session, current_app
+from flask import render_template, request, flash, redirect, url_for, session, current_app, Blueprint
 from app.services.auth_service import AuthService
 
-@auth_bp.route("/")
+auth_login_bp = Blueprint("auth_login", __name__)
+
+@auth_login_bp.route("/")
 def index():
     return render_template("login.html")
 
-@auth_bp.route('/login', methods=['GET', 'POST'])
+@auth_login_bp.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
         username = request.form.get('username','').strip()
@@ -26,8 +27,8 @@ def login():
 
     return render_template('login.html')
 
-@auth_bp.route("/logout")
+@auth_login_bp.route("/logout")
 def logout():
     session.pop('username', None)
     session.pop('role', None)
-    return redirect(url_for("auth.login"))
+    return redirect(url_for("auth_login.login"))

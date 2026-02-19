@@ -1,9 +1,10 @@
-from app.routes.auth import auth_bp
-from flask import render_template, request, flash, redirect, url_for, current_app
+from flask import render_template, request, flash, redirect, url_for, current_app, Blueprint
 from app.services.auth_service import AuthService
 from app.services.token_service import TokenService
 
-@auth_bp.route('/recuperar-senha', methods=['GET', 'POST'])
+auth_password_bp = Blueprint("auth_password", __name__)
+
+@auth_password_bp.route('/recuperar-senha', methods=['GET', 'POST'])
 def recuperar_senha():
     if request.method == 'POST':
         email = request.form.get('email', '').strip().lower()
@@ -17,7 +18,7 @@ def recuperar_senha():
 
             flash('Se o e-mail existir, enviaremos instruções para recuperação.', 'info')
 
-            return redirect(url_for('auth.login'))
+            return redirect(url_for('auth_login.login'))
             
         except Exception as e:
             current_app.logger.error(f"Erro na recuperação de senha: {str(e)}")
@@ -26,14 +27,14 @@ def recuperar_senha():
     # Se for GET, só mostra o formulário
     return render_template('recuperar_senha.html')
 
-@auth_bp.route('/redefinir_senha/<token>', methods=['GET', 'POST'])
+@auth_password_bp.route('/redefinir_senha/<token>', methods=['GET', 'POST'])
 def redefinir_senha(token):
     try:
         data = TokenService.validar_token_recuperacao(token)
         user_id = data['user_id']
     except Exception as e:
         flash('Link inválido ou expirado.', 'danger')
-        return redirect(url_for('auth.login'))
+        return redirect(url_for('auth_login.login'))
 
     if request.method == 'POST':
         senha = request.form.get('senha', '').strip()
@@ -43,7 +44,7 @@ def redefinir_senha(token):
             AuthService.redefinir_senha(user_id, senha, confirmar)
 
             flash('Senha redefinida com sucesso!', 'success')
-            return redirect(url_for('auth.login'))
+            return redirect(url_for('auth_login.login'))
         
         except ValueError as e:
             flash(str(e), 'danger')
