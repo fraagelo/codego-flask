@@ -4,9 +4,10 @@ from app.extensions import bcrypt
 
 def create_app():
     app = Flask(__name__)
+    load_dotenv()
     app.config.from_object("app.config.Config")
 
-    load_dotenv()
+    
     bcrypt.init_app(app)
 
     # registrar blueprints
